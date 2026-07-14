@@ -3,7 +3,7 @@ __pycache__/
 *.pyc 
 chat_history/ 
 node_modules/ 
-electron-app/node_modules/ 
+electron-app/
 .env 
 notes/ 
 dist/ 
