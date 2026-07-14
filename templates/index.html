@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Notebook</title>
+    <style>
+        :root {
+            --bg: linear-gradient(135deg, #f7f9ff 0%, #eef4ff 100%);
+            --surface: rgba(255, 255, 255, 0.9);
+            --surface-strong: rgba(255, 255, 255, 0.98);
+            --text: #18212f;
+            --muted: #64748b;
+            --border: rgba(148, 163, 184, 0.2);
+            --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+            --primary: #4f7cff;
+            --primary-soft: rgba(79, 124, 255, 0.08);
+            --button-bg: linear-gradient(135deg, #4f7cff 0%, #3b6df6 100%);
+            --button-text: white;
+            --surface-alt: #f3f6fb;
+        }
+
+        body[data-theme='dark'] {
+            --bg: radial-gradient(circle at top, #08101f 0%, #0b1223 50%, #090f1f 100%);
+            --surface: rgba(15, 23, 42, 0.95);
+            --surface-strong: rgba(20, 28, 47, 0.98);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.18);
+            --shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+            --primary: #60a5fa;
+            --primary-soft: rgba(96, 165, 250, 0.16);
+            --button-bg: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            --button-text: white;
+            --surface-alt: rgba(23, 34, 56, 0.9);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text);
+            background: var(--bg);
+        }
+        #app {
+            display: flex;
+            height: 100vh;
+            padding: 14px;
+            gap: 14px;
+        }
+        #sidebar {
+            width: 270px;
+            padding: 18px 14px;
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            overflow-y: auto;
+            border-radius: 18px;
+            flex-shrink: 0;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            transition: width 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+        }
+        #sidebar.collapsed {
+            width: 0;
+            padding: 0;
+            border: none;
+            box-shadow: none;
+            overflow: hidden;
+        }
+        #sidebar h3 {
+            margin-top: 0;
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            margin-bottom: 12px;
+        }
+        .pageItem {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 12px;
+            margin-bottom: 6px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text);
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        .pageItem:hover {
+            background: var(--primary-soft);
+            transform: translateY(-1px);
+        }
+        .pageItem.active {
+            background: linear-gradient(135deg, #4f7cff 0%, #3b6df6 100%);
+            color: white;
+            box-shadow: 0 8px 18px rgba(79, 124, 255, 0.22);
+        }
+        .pageItem .deleteBtn {
+            visibility: hidden;
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 0 4px;
+            margin: 0;
+            line-height: 1;
+        }
+        .pageItem:hover .deleteBtn {
+            visibility: visible;
+        }
+        .pageItem .deleteBtn:hover {
+            color: #e74c3c;
+        }
+        .pageItem.active .deleteBtn {
+            color: white;
+            visibility: visible;
+        }
+        .pageItem.active .deleteBtn:hover {
+            color: rgba(255, 255, 255, 0.85);
+        }
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            gap: 12px;
+        }
+        #toolbar {
+            padding: 12px 14px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+        #chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+        .message {
+            margin-bottom: 0;
+            padding: 10px 12px;
+            border-radius: 14px;
+            max-width: 82%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            line-height: 1.55;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+        }
+        .message p {
+            margin: 0 0 6px;
+        }
+        .message p:last-child {
+            margin-bottom: 0;
+        }
+        .user {
+            background: linear-gradient(135deg, #4f7cff 0%, #3b6df6 100%);
+            color: white;
+            margin-left: auto;
+            text-align: left;
+        }
+        .assistant {
+            background: var(--surface);
+            color: var(--text);
+            margin-right: auto;
+        }
+        #inputArea {
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+        #commandDropdown {
+            position: absolute;
+            bottom: 108px;
+            left: 16px;
+            right: 16px;
+            background: var(--surface);
+            border: 1px solid rgba(79, 124, 255, 0.16);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            display: none;
+            z-index: 1000;
+            max-width: 380px;
+            min-width: 260px;
+            max-height: 260px;
+            overflow: hidden;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        .commandItem {
+            padding: 14px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+            transition: background 0.15s ease, transform 0.15s ease;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+        .commandItem:last-child {
+            border-bottom: none;
+        }
+        .commandName {
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .commandDesc {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .commandItem:hover {
+            background: var(--surface-alt);
+            transform: translateX(2px);
+        }
+        .commandItem.selected {
+            background: linear-gradient(135deg, #4f7cff 0%, #3b6df6 100%);
+            color: white;
+        }
+        .commandItem.selected .commandName,
+        .commandItem.selected .commandDesc {
+            color: white;
+        }
+        textarea {
+            width: 100%;
+            min-height: 92px;
+            padding: 12px 14px;
+            font-size: 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+            background: var(--surface);
+            color: var(--text);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+        }
+        button {
+            margin-top: 10px;
+            padding: 9px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 999px;
+            background: var(--button-bg);
+            color: var(--button-text);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            box-shadow: var(--shadow);
+        }
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+        }
+        #chatNavBtn {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid rgba(79, 124, 255, 0.35);
+            box-shadow: none;
+        }
+        #chatNavBtn:hover {
+            background: var(--primary-soft);
+            box-shadow: none;
+        }
+        #saveBtn {
+            background: linear-gradient(135deg, #28c76f 0%, #20b866 100%);
+            border-radius: 999px;
+            margin-top: 0;
+        }
+        #saveBtn:hover {
+            background: linear-gradient(135deg, #24b763 0%, #199d57 100%);
+        }
+        input#titleInput {
+            font-size: 24px;
+            font-weight: 700;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            outline: none;
+            padding: 10px 12px;
+            width: 100%;
+            margin-bottom: 8px;
+            background: transparent;
+            color: var(--text);
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        input#titleInput:focus {
+            border-color: var(--border);
+            background: var(--surface-strong);
+        }
+        #pageEditor {
+            flex: 1;
+            width: 100%;
+            min-height: 280px;
+            border: 1px solid var(--border);
+            outline: none;
+            font-size: 15px;
+            line-height: 1.7;
+            padding: 16px 18px;
+            border-radius: 16px;
+            overflow-y: auto;
+            background: var(--surface);
+            margin-bottom: 12px;
+            box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.03);
+        }
+        #pageEditor a {
+            color: #2563eb;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        #pageEditor:empty:before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+        #pageEditor h1 {
+            font-size: 2em;
+            font-weight: 700;
+            margin: 0.5em 0 0.3em;
+        }
+        #pageEditor h2 {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin: 0.5em 0 0.3em;
+        }
+        #pageEditor h3 {
+            font-size: 1.2em;
+            font-weight: 700;
+            margin: 0.5em 0 0.3em;
+        }
+        #editorArea {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 18px;
+            display: none;
+            flex-direction: column;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface-strong);
+            color: var(--text);
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-size: 14px;
+            box-shadow: var(--shadow);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.35s ease, transform 0.35s ease;
+            pointer-events: none;
+            font-weight: 500;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="sidebar">
+            <h3>Pages</h3>
+            <div id="pageList"></div>
+        </div>
+        <div id="main">
+            <div id="toolbar">
+                <button id="toggleSidebar" onclick="toggleSidebar()">☰</button>
+                <button onclick="createNewPage()">+ New Page</button>
+                <button id="chatNavBtn" style="display: none;" onclick="goToChat()">Chat</button>
+                <button id="themeToggle" onclick="toggleTheme()">🌙</button>
+            </div>
+            <div id="chat"></div>
+            <div id="editorArea">
+                <input id="titleInput" type="text" placeholder="Untitled">
+                <div id="pageEditor" contenteditable="true" placeholder="Start writing…"></div>
+                <button id="saveBtn">Save</button>
+            </div>
+            <div id="inputArea">
+                <textarea id="prompt" rows="3" placeholder="Type your query… (Use /p title to create a page, /table to insert a table)"></textarea>
+                <button type="button" id="sendBtn" onclick="sendPrompt()">Send</button>
+                <div id="commandDropdown"></div>
+            </div>
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
+    </script>
+    <script>
+        // ─── DOM refs ──────────────────────────────────────────────
+        const chatDiv = document.getElementById('chat');
+        const promptInput = document.getElementById('prompt');
+        const editor = document.getElementById('pageEditor');
+        const titleInput = document.getElementById('titleInput');
+        const editorArea = document.getElementById('editorArea');
+        const chatNavBtn = document.getElementById('chatNavBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const toast = document.getElementById('toast');
+
+        let currentOpenPage = null; // title of the page currently open in editor
+        let isSaving = false;
+        let saveTimeout = null;
+
+        // ─── Commands ──────────────────────────────────────────────
+        const COMMANDS = [
+            { name: '/delete-h', desc: 'Delete chat history' },
+            { name: '/p ', desc: 'Create new page' },
+            { name: '/add ', desc: 'Add content to page' },
+            { name: '/table', desc: 'Insert a markdown table' },
+            { name: '/cls', desc: 'Clear chat display' }
+        ];
+        let commandSuggestions = [];
+        let selectedCommandIndex = 0;
+
+        // ─── Toast ──────────────────────────────────────────────────
+        function showToast(msg, duration = 2200) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._hide);
+            toast._hide = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // ─── Sidebar ───────────────────────────────────────────────
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        function setTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('theme', theme);
+            const toggle = document.getElementById('themeToggle');
+            if (toggle) toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        function toggleTheme() {
+            setTheme(document.body.dataset.theme === 'dark' ? 'light' : 'dark');
+        }
+
+        // ─── Command dropdown ──────────────────────────────────────
+        function renderCommandDropdown() {
+            const dropdown = document.getElementById('commandDropdown');
+            dropdown.innerHTML = commandSuggestions.map((cmd, idx) =>
+                `<div class="commandItem${idx === selectedCommandIndex ? ' selected' : ''}"
+                          onclick="insertCommand('${cmd.name}'); return false;"
+                          title="${cmd.desc}">
+                        <div class="commandName">${cmd.name}</div>
+                        <div class="commandDesc">${cmd.desc}</div>
+                    </div>`
+            ).join('');
+        }
+
+        function showCommandDropdown() {
+            const dropdown = document.getElementById('commandDropdown');
+            const text = promptInput.value;
+            if (text.startsWith('/')) {
+                const query = text.toLowerCase();
+                commandSuggestions = COMMANDS.filter(cmd => cmd.name.toLowerCase().startsWith(query));
+                selectedCommandIndex = 0;
+                if (commandSuggestions.length > 0) {
+                    renderCommandDropdown();
+                    dropdown.style.display = 'block';
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        function insertCommand(cmd) {
+            promptInput.value = cmd;
+            updatePromptHeight();
+            document.getElementById('commandDropdown').style.display = 'none';
+            promptInput.focus();
+        }
+
+        // ─── Render page content ───────────────────────────────────
+        function isHtmlContent(text) {
+            return /<\/?[a-z][\s\S]*>/i.test(text);
+        }
+
+        function convertEditorTextLinks(text) {
+            const escaped = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            const markdownLinks = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+                '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+            return markdownLinks.replace(/(https?:\/\/[^\s<]+)/g,
+                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+        }
+
+        function setEditorContent(content) {
+            content = String(content || '');
+            if (!content.trim()) {
+                editor.innerHTML = '<p><br></p>';
+                return;
+            }
+            if (isHtmlContent(content)) {
+                try {
+                    editor.innerHTML = content;
+                    return;
+                } catch (e) {
+                    console.warn('Editor HTML load failed, falling back to text content', e);
+                }
+            }
+            editor.innerHTML = convertEditorTextLinks(content.replace(/\n/g, '<br>'));
+        }
+
+        function insertHtmlAtCursor(html) {
+            editor.focus();
+            const sel = window.getSelection();
+            if (!sel || !sel.rangeCount) return;
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            const frag = range.createContextualFragment(html);
+            range.insertNode(frag);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+
+        function buildMarkdownTable(rows = 2, cols = 2) {
+            rows = Math.max(1, Math.min(10, rows));
+            cols = Math.max(1, Math.min(10, cols));
+            const headers = Array.from({ length: cols }, (_, i) => `Header ${i + 1}`);
+            const headerRow = `| ${headers.join(' | ')} |`;
+            const separatorRow = `| ${headers.map(() => '---').join(' | ')} |`;
+            const bodyRows = Array.from({ length: rows }, () => `| ${Array.from({ length: cols }, () => '').join(' | ')} |`);
+            return [headerRow, separatorRow, ...bodyRows].map(line => `<p>${line}</p>`).join('');
+        }
+
+        function insertTable(rows = 2, cols = 2) {
+            if (editorArea.style.display !== 'flex') {
+                showToast('Open a page to insert a table');
+                return;
+            }
+            const html = buildMarkdownTable(rows, cols);
+            insertHtmlAtCursor(html);
+            saveCurrentPage(false);
+            showToast('Table inserted');
+        }
+
+        function renderPageContent(content) {
+            // For the editor, preserve the stored note exactly.
+            return content || '';
+        }
+
+        // ─── Fetch page ────────────────────────────────────────────
+        async function fetchPage(pageName) {
+            const encoded = encodeURIComponent(pageName);
+            const url = `/get_page/${encoded}`;
+            const resp = await fetch(url);
+            if (!resp.ok) {
+                const text = await resp.text();
+                throw new Error(`Server ${resp.status}: ${text.slice(0, 120)}`);
+            }
+            return resp.json();
+        }
+
+        // ─── Save current page ─────────────────────────────────────
+        async function saveCurrentPage(showToastMsg = false) {
+            if (isSaving) return;
+            if (editorArea.style.display !== 'flex') return;
+            const title = editor.dataset.currentPage || titleInput.value.trim();
+            const newTitle = titleInput.value.trim() || title;
+            if (!newTitle) return;
+
+            isSaving = true;
+            try {
+                const content = editor.innerHTML;
+                const resp = await fetch(`/save_page/${encodeURIComponent(title)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, new_title: newTitle })
+                });
+                if (!resp.ok) {
+                    const err = await resp.text();
+                    throw new Error(`Save failed (${resp.status}): ${err.slice(0, 100)}`);
+                }
+                editor.dataset.currentPage = newTitle;
+                currentOpenPage = newTitle;
+                await loadPagesList();
+                if (showToastMsg) showToast('Page saved ✅');
+            } catch (e) {
+                console.error('Save error:', e);
+                showToast('⚠️ Save failed: ' + e.message);
+            } finally {
+                isSaving = false;
+            }
+        }
+
+        // ─── Load and open page ────────────────────────────────────
+        async function loadAndOpenPage(pageName) {
+            if (!pageName || typeof pageName !== 'string' || !pageName.trim()) {
+                showToast('⚠️ Invalid page name');
+                return;
+            }
+            pageName = pageName.trim();
+
+            // If editor is open, save first.
+            if (editorArea.style.display === 'flex') {
+                await saveCurrentPage(false);
+            }
+
+            // Show loading state.
+            document.querySelectorAll('.pageItem').forEach(el => el.classList.remove('active'));
+
+            try {
+                const data = await fetchPage(pageName);
+                const pageTitle = data.title || pageName;
+                currentOpenPage = pageTitle;
+
+                // Switch UI to editor.
+                chatDiv.style.display = 'none';
+                promptInput.closest('#inputArea').style.display = 'none';
+                editorArea.style.display = 'flex';
+                chatNavBtn.style.display = 'inline-block';
+
+                titleInput.value = pageTitle;
+                setEditorContent(data.content);
+                editor.dataset.currentPage = pageTitle;
+
+                // Highlight active in sidebar.
+                document.querySelectorAll('.pageItem').forEach(el => {
+                    if (el.dataset.page === pageTitle) el.classList.add('active');
+                });
+                await loadPagesList();
+            } catch (err) {
+                console.error('loadAndOpenPage error:', err);
+                showToast('❌ Unable to load page. Refreshing list…');
+                await loadPagesList();
+                // Try once more after refresh.
+                try {
+                    const data = await fetchPage(pageName);
+                    const pageTitle = data.title || pageName;
+                    currentOpenPage = pageTitle;
+                    chatDiv.style.display = 'none';
+                    promptInput.closest('#inputArea').style.display = 'none';
+                    editorArea.style.display = 'flex';
+                    chatNavBtn.style.display = 'inline-block';
+                    titleInput.value = pageTitle;
+                    setEditorContent(data.content);
+                    editor.dataset.currentPage = pageTitle;
+                    document.querySelectorAll('.pageItem').forEach(el => {
+                        if (el.dataset.page === pageTitle) el.classList.add('active');
+                    });
+                    await loadPagesList();
+                    showToast('✅ Page loaded');
+                } catch (retryErr) {
+                    console.error('Retry failed:', retryErr);
+                    showToast('⚠️ Could not open page. Please refresh the list and try again.');
+                }
+            }
+        }
+
+        // ─── Go to chat ────────────────────────────────────────────
+        async function goToChat() {
+            if (editorArea.style.display === 'flex') {
+                await saveCurrentPage(false);
+            }
+            editorArea.style.display = 'none';
+            chatDiv.style.display = 'flex';
+            promptInput.closest('#inputArea').style.display = 'block';
+            chatNavBtn.style.display = 'none';
+            document.querySelectorAll('.pageItem').forEach(el => el.classList.remove('active'));
+            currentOpenPage = null;
+            await loadPagesList();
+        }
+
+        // ─── Delete page ───────────────────────────────────────────
+        async function deletePage(title, event) {
+            if (event) event.stopPropagation();
+            if (!title) return;
+            if (!confirm(`Delete "${title}"?`)) return;
+            try {
+                const resp = await fetch('/delete_page', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title })
+                });
+                if (!resp.ok) throw new Error(await resp.text());
+                if (currentOpenPage === title) {
+                    await goToChat();
+                }
+                await loadPagesList();
+                showToast(`🗑️ "${title}" deleted`);
+            } catch (e) {
+                console.error('Delete error:', e);
+                showToast('⚠️ Delete failed: ' + e.message);
+            }
+        }
+
+        // ─── Create new page ───────────────────────────────────────
+        async function createNewPage() {
+            const base = 'Untitled';
+            let idx = 1;
+            let name = base;
+            // Find a unique name.
+            const listResp = await fetch('/pages_list');
+            if (listResp.ok) {
+                const pages = await listResp.json();
+                const names = pages.map(p => p.replace(/\.txt$/, ''));
+                while (names.includes(name)) {
+                    name = base + ' ' + (idx++);
+                }
+            }
+            try {
+                const resp = await fetch('/create_page', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: name })
+                });
+                if (!resp.ok) throw new Error(await resp.text());
+                await loadPagesList();
+                await loadAndOpenPage(name);
+                showToast(`📄 "${name}" created`);
+            } catch (e) {
+                console.error('Create page error:', e);
+                showToast('⚠️ Could not create page: ' + e.message);
+            }
+        }
+
+        // ─── Load page list ────────────────────────────────────────
+        async function loadPagesList() {
+            try {
+                const resp = await fetch('/pages_list');
+                if (!resp.ok) throw new Error(await resp.text());
+                const pages = await resp.json();
+                const list = document.getElementById('pageList');
+                list.innerHTML = '';
+                pages.forEach(file => {
+                    const name = file.replace(/\.txt$/, '');
+                    const item = document.createElement('div');
+                    item.className = 'pageItem';
+                    if (currentOpenPage === name) item.classList.add('active');
+                    item.dataset.page = name;
+
+                    const span = document.createElement('span');
+                    span.textContent = name;
+                    span.style.flex = '1';
+                    item.appendChild(span);
+
+                    const del = document.createElement('button');
+                    del.className = 'deleteBtn';
+                    del.textContent = '✕';
+                    del.title = 'Delete page';
+                    del.onclick = (e) => deletePage(name, e);
+                    item.appendChild(del);
+
+                    item.onclick = () => loadAndOpenPage(name);
+                    list.appendChild(item);
+                });
+            } catch (e) {
+                console.error('loadPagesList error:', e);
+                showToast('⚠️ Could not load page list');
+            }
+        }
+
+        // ─── Chat ──────────────────────────────────────────────────
+        function addMessage(role, text) {
+            const div = document.createElement('div');
+            div.className = 'message ' + role;
+            let processed = text.replace(/Page '([^']+)' created\./g, (m, pageName) =>
+                `Page '[${pageName}](javascript:void(0);)' created.`
+            );
+            let html = marked.parse(processed, { breaks: true, gfm: true });
+            html = html.replace(/<a href="javascript:void\(0\);">([^<]+)<\/a>/g, (m, pageName) =>
+                `<a href="#" style="color:#4f7cff;text-decoration:underline;cursor:pointer;" onclick='event.preventDefault(); loadAndOpenPage(${JSON.stringify(pageName)}); return false;'>${pageName}</a>`
+            );
+            div.innerHTML = html;
+            chatDiv.appendChild(div);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        function updatePromptHeight() {
+            promptInput.style.height = 'auto';
+            promptInput.style.height = Math.min(promptInput.scrollHeight, 180) + 'px';
+        }
+
+        async function sendPrompt() {
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+
+            if (prompt.startsWith('/table')) {
+                const arg = prompt.split(/\s+/)[1] || '';
+                let rows = 2;
+                let cols = 2;
+                const match = arg.match(/^(\d+)x(\d+)$/i);
+                if (match) {
+                    rows = parseInt(match[1], 10);
+                    cols = parseInt(match[2], 10);
+                }
+                insertTable(rows, cols);
+                promptInput.value = '';
+                updatePromptHeight();
+                document.getElementById('commandDropdown').style.display = 'none';
+                return;
+            }
+
+            addMessage('user', prompt);
+            promptInput.value = '';
+            updatePromptHeight();
+
+            addMessage('assistant', 'Thinking…');
+            try {
+                const resp = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                const data = await resp.json();
+                chatDiv.removeChild(chatDiv.lastChild);
+                if (data.reply === '__CLEAR__') {
+                    chatDiv.innerHTML = '';
+                    return;
+                }
+                addMessage('assistant', data.reply);
+                if (prompt.startsWith('/p ') || prompt.startsWith('/add ')) {
+                    await loadPagesList();
+                }
+            } catch (e) {
+                chatDiv.removeChild(chatDiv.lastChild);
+                addMessage('assistant', '⚠️ Error: ' + e.message);
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const resp = await fetch('/history');
+                const msgs = await resp.json();
+                msgs.forEach(m => {
+                    if (m.role !== 'system') addMessage(m.role, m.content);
+                });
+            } catch (e) {
+                console.warn('History load failed:', e);
+            }
+        }
+
+        // ─── Cycle pages with Ctrl+Tab ────────────────────────────
+        function cyclePageTabs(direction) {
+            const items = Array.from(document.querySelectorAll('#pageList .pageItem'));
+            if (!items.length) return;
+            let idx = items.findIndex(el => el.classList.contains('active'));
+            if (idx === -1) idx = 0;
+            const next = (idx + direction + items.length) % items.length;
+            items[next].click();
+        }
+
+        // ─── Heading shortcuts (Markdown # → H1/H2/H3) ────────────
+        editor.addEventListener('input', function() {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
+            const range = sel.getRangeAt(0);
+            let node = range.startContainer;
+            while (node && node.parentNode !== editor) node = node.parentNode;
+            if (!node) return;
+            if (node.nodeName === 'DIV' || node.nodeName === 'P') {
+                const text = node.textContent;
+                const m = text.match(/^(#{1,3})\s/);
+                if (m) {
+                    const level = m[1].length;
+                    node.textContent = text.substring(m[0].length);
+                    const r = document.createRange();
+                    r.selectNodeContents(node);
+                    sel.removeAllRanges();
+                    sel.addRange(r);
+                    document.execCommand('formatBlock', false, 'H' + level);
+                    sel.collapseToEnd();
+                }
+            }
+        });
+
+        editor.addEventListener('click', function(event) {
+            const anchor = event.target.closest('a');
+            if (!anchor || !anchor.href) return;
+            event.preventDefault();
+            window.open(anchor.href, '_blank', 'noopener');
+        });
+
+        // ─── Debounce ──────────────────────────────────────────────
+        function debounce(fn, delay) {
+            let id;
+            return (...args) => {
+                clearTimeout(id);
+                id = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        const debouncedSave = debounce(() => saveCurrentPage(false), 1000);
+
+        // ─── Autosave triggers ─────────────────────────────────────
+        editor.addEventListener('input', debouncedSave);
+        titleInput.addEventListener('input', debouncedSave);
+
+        // ─── Save button ───────────────────────────────────────────
+        saveBtn.onclick = () => saveCurrentPage(true);
+
+        // ─── Keyboard shortcuts ────────────────────────────────────
+        document.addEventListener('keydown', (e) => {
+            const isTabKey = e.key === 'Tab' || e.code === 'Tab';
+            // Ctrl+S → save
+            if (e.key === 's' && e.ctrlKey) {
+                e.preventDefault();
+                if (editorArea.style.display === 'flex') saveCurrentPage(true);
+            }
+            // Ctrl+Alt+T → insert table
+            if (e.key.toLowerCase() === 't' && e.ctrlKey && e.altKey) {
+                e.preventDefault();
+                insertTable(2, 2);
+            }
+            // Ctrl+Tab → create new page (browser may intercept this before pages receive it)
+            if (e.key.toLowerCase() === 't'  && e.ctrlKey) {
+                e.preventDefault();
+                createNewPage();
+            }
+            // Ctrl+Tab → cycle pages backward
+            if (isTabKey && e.ctrlKey ) {
+                e.preventDefault();
+                cyclePageTabs(-1);
+            }
+            // Escape → close dropdown
+            if (e.key === 'Escape') {
+                document.getElementById('commandDropdown').style.display = 'none';
+            }
+        });
+
+        // ─── Beforeunload: save if dirty ──────────────────────────
+        // let isLeaving = false;
+        // window.addEventListener('beforeunload', (e) => {
+        //     if (editorArea.style.display === 'flex' && !isSaving) {
+        //         // We can't await here, but we can fire-and-forget.
+        //         saveCurrentPage(false);
+        //         // Keep the browser from closing immediately if save is in flight.
+        //         e.preventDefault();
+        //         e.returnValue = '';
+        //     }
+        // });
+
+        // ─── Prompt input events ───────────────────────────────────
+        promptInput.addEventListener('input', () => {
+            updatePromptHeight();
+            showCommandDropdown();
+        });
+
+        promptInput.addEventListener('keydown', (e) => {
+            const dd = document.getElementById('commandDropdown');
+            if (dd.style.display === 'block') {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedCommandIndex = Math.min(selectedCommandIndex + 1, commandSuggestions.length - 1);
+                    renderCommandDropdown();
+                    return;
+                }
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedCommandIndex = Math.max(selectedCommandIndex - 1, 0);
+                    renderCommandDropdown();
+                    return;
+                }
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (commandSuggestions.length) {
+                        insertCommand(commandSuggestions[selectedCommandIndex].name);
+                        return;
+                    }
+                }
+            }
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                dd.style.display = 'none';
+                sendPrompt();
+            }
+        });
+
+        // Click outside dropdown → close.
+        document.addEventListener('click', (e) => {
+            if (e.target !== promptInput && !e.target.closest('#commandDropdown')) {
+                document.getElementById('commandDropdown').style.display = 'none';
+            }
+        });
+
+        // ─── Init ──────────────────────────────────────────────────
+        window.onload = async function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) setTheme(savedTheme);
+            updatePromptHeight();
+            await loadHistory();
+            await loadPagesList();
+            // If there's at least one page, open the first one automatically?
+            // We'll let the user click – but we show the chat by default.
+        };
+    </script>
+</body>
+</html>
