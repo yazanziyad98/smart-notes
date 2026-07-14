@@ -1,0 +1,14 @@
+.venv/ 
+__pycache__/ 
+*.pyc 
+chat_history/ 
+node_modules/ 
+electron-app/node_modules/ 
+.env 
+notes/ 
+dist/ 
+models/
+nodejs/
+git
+*.gguf
+*.msi
