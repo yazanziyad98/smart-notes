@@ -10,35 +10,38 @@ HISTORY_DIR = 'chat_history'
 
 app = Flask(__name__)
 
-llm = 1
+
 
 
 @app.route('/')
 def index():
     return render_template('index.html')
 @app.route('/history', methods=['GET'])
-def  history():
-    file_path = os.path.join(HISTORY_DIR, 'history.json')
-    os.makedirs(HISTORY_DIR, exist_ok=True)
+def history():
+    print('InHistory',flush=True)
+    global messages
     try: 
+       file_path = os.path.join(HISTORY_DIR, 'history.json')
+       os.makedirs(HISTORY_DIR, exist_ok=True)
        with open(file_path, 'r',encoding='utf-8') as f:
-           history =  json.load(f)
+           messages =  json.load(f)
     except:
        messages = []
-       messages.append([{"role": "system", "content": "You are a helpful assistant. You must NEVER use emojis, emoticons, or unicode smileys in any response. Use plain text only."}])
-       return jsonify(messages)
-    return jsonify(history)
+       messages.append([{"role": "system", "content": "You are a helpful assistant. You must NEVER use emojis. Use plain text only."}])
+    return jsonify(messages)
 
 def save_chat_history(chat, directory, filename):
+    print('save_chat_history',flush=True)
     file_path = os.path.join(directory, filename)
     os.makedirs(directory, exist_ok=True)
 
-    with open(file_path, 'w') as json_file:
+    with open(file_path, 'w',encoding='utf-8') as json_file:
         json.dump(chat, json_file, indent=4)
 
 
 @app.route('/create_page', methods=['POST'])
 def create_page():
+    print('CraetPage',flush=True)
     data = request.json
     title = data.get('title', 'Untitled').strip()
     base_title = title
@@ -69,6 +72,7 @@ def delete_page():
 
 @app.route('/pages_list', methods=['GET'])
 def pages_list():
+    print('InPageList',flush=True)
     os.makedirs(NOTES_DIR, exist_ok=True)
     txt_files = [f for f in os.listdir(NOTES_DIR) if f.endswith('.txt')]
     return jsonify(txt_files)
@@ -117,7 +121,6 @@ def cmd_new_page(prompt):
         reply = f"Page '{title}' created."
         messages.append({"role": "user", "content": prompt})
         messages.append({"role": "assistant", "content": reply})
-        #save_chat_history(messages, 'chat_history', 'history.json')
         return reply
 
 
@@ -155,6 +158,7 @@ COMMANDS = {
       
 @app.route('/generate', methods=['POST'])
 def generate():
+    global messages
     data = request.json
     prompt = data.get('prompt', '')
     if prompt.startswith('/'):
@@ -163,23 +167,18 @@ def generate():
                 reply = fun(prompt)
                 save_chat_history(messages,HISTORY_DIR,'history.json')
                 return jsonify({"reply": reply})
-            
+                
         if prompt.startswith('/cls'):
             return jsonify({"reply": "__CLEAR__"})
         
     print('awsa2',flush=True)
-    messages.append({"role": "user", "content": prompt})
-    if llm == 1:
-       llm = Llama(
-            model_path="models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    llm = Llama(
+            model_path="models/qwen3-4b-instruct-2507-q4_k_m.gguf",
             n_ctx=4048,
             n_threads=4,
             verbose=False)
-    llm = Llama(
-            model_path="models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
-            n_ctx=4048,
-            n_threads=4,
-            verbose=False) 
+    messages.append({"role": "user", "content": prompt})
+
     response = llm.create_chat_completion(
         messages=messages,
         max_tokens=300,
@@ -189,7 +188,7 @@ def generate():
     reply = response["choices"][0]["message"]["content"]
     messages.append({"role": "assistant", "content": reply}) 
     usage = response.get("usage", {})
-    prompt_tokens = usage.get("prompt_tokens", 0)
+    #prompt_tokens = usage.get("prompt_tokens", 0)
     total_tokens = usage.get("total_tokens", 0)
     while total_tokens > 2000 and len(messages) > 2:
            messages.pop(2)
